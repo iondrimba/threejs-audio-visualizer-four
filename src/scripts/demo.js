@@ -51,12 +51,14 @@ class App {
       this.addGrid();
       this.animate();
       this.playSound(file);
+      this.addEventListener();
 
-      this.timer = 600;
-      let interval = setInterval(() => {
-        this.addTilesRow(this.rowTiles);
-        this.removeOldTiles(this.rowTiles);
-      }, this.timer);
+      setInterval(() => {
+        if (this.playing) {
+          this.addTilesRow(this.rowTiles);
+          this.removeOldTiles(this.rowTiles);
+        }
+      }, 600);
     });
   }
 
@@ -67,8 +69,8 @@ class App {
       for (const tile in removedTiles) {
         if (removedTiles.hasOwnProperty(tile)) {
           const element = removedTiles[tile];
-          TweenMax.delayedCall(0.07 * index, () => {
 
+          TweenMax.delayedCall(0.07 * index, () => {
             TweenMax.to(element.scale, .5, {
               z: 0.01,
               ease: Power2.easeOut,
@@ -108,8 +110,7 @@ class App {
         const pos = {
           z: row,
           y: 3,
-          x: hasPrev ? prevPos : col,
-          rX: this.radians(90)
+          x: hasPrev ? prevPos : col
         }
 
         positions[col][row] = pos;
@@ -127,10 +128,16 @@ class App {
 
         plane.position.set(pos.x, pos.y, pos.z);
 
-        plane.rotateX(pos.rX);
-
+        plane.rotateX(this.radians(90));
 
         this.groupTiles.add(plane);
+
+        TweenMax.delayedCall(0.1 * index, () => {
+          TweenMax.to(plane.children[0].material, .3, {
+            opacity: 1,
+            ease: Power2.easeOut
+          });
+        });
 
         tiles[tiles.length - 1].push(plane);
 
@@ -179,17 +186,24 @@ class App {
     this.btnPause = document.querySelector('.pause');
 
     this.btnPlay.addEventListener('click', () => {
-      this.audioElement.play();
-      this.btnPlay.classList.remove('control-show');
-      this.btnPause.classList.add('control-show');
-
+      this.play();
     });
 
     this.btnPause.addEventListener('click', () => {
-      this.audioElement.pause();
-      this.btnPause.classList.remove('control-show');
-      this.btnPlay.classList.add('control-show');
+      this.pause();
     });
+  }
+
+  pause() {
+    this.audioElement.pause();
+    this.btnPause.classList.remove('control-show');
+    this.btnPlay.classList.add('control-show');
+  }
+
+  play() {
+    this.audioElement.play();
+    this.btnPlay.classList.remove('control-show');
+    this.btnPause.classList.add('control-show');
   }
 
   createScene() {
@@ -206,17 +220,30 @@ class App {
     this.scene.add(this.groupTiles);
 
     document.body.appendChild(this.renderer.domElement);
+  }
 
-    document.body.onmouseup = () => {
+  addEventListener() {
+    document.body.addEventListener('mouseup', () => {
       console.log('up');
-      document.body.style.cursor = '-moz-grab';
-      document.body.style.cursor = '-webkit-grab';
-    };
-    document.body.onmousedown = () => {
+      requestAnimationFrame(() => {
+        document.body.style.cursor = '-moz-grab';
+        document.body.style.cursor = '-webkit-grab';
+      });
+    });
+
+    document.body.addEventListener('mousedown', () => {
       console.log('down');
-      document.body.style.cursor = '-moz-grabbing';
-      document.body.style.cursor = '-webkit-grabbing';
-    }
+      requestAnimationFrame(() => {
+        document.body.style.cursor = '-moz-grabbing';
+        document.body.style.cursor = '-webkit-grabbing';
+      });
+    });
+
+    document.body.addEventListener('keyup', (evt) => {
+      if (evt.keyCode === 32 || evt.code === 'Space') {
+        this.playing ? this.pause() : this.play();
+      }
+    });
   }
 
   createCamera() {
@@ -253,6 +280,8 @@ class App {
     obj.receiveShadow = true;
     obj.position.z = -2.5;
     obj.size = 1;
+    obj.material.opacity = 0;
+    obj.material.transparent = true;
 
     const pivot = new THREE.Object3D();
     pivot.add(obj);
