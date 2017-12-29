@@ -4,16 +4,13 @@ import { TweenMax, Power2 } from 'gsap';
 
 class App {
   constructor() {
-    this.count = 0;
     this.songFile = 'autotron.mp3';
     this.percent = 0;
     this.playing = false;
-    this.volume = 0.01;
-    this.objects = [];
+    this.volume = 1;
     this.sceneBackGroundColor = 0xfff700;
     this.objectsColor = 0xae12d4;
     this.rowTiles = [];
-    this.cols = 0;
     this.groupTiles = new THREE.Object3D();
 
     this.loader = new Loader();
@@ -48,7 +45,6 @@ class App {
       this.addSpotLight();
       this.addCameraControls();
       this.addFloor();
-      this.addGrid();
       this.animate();
       this.playSound(file);
       this.addEventListener();
@@ -167,12 +163,11 @@ class App {
       let index = 0;
       for (var i = 0; i < this.rowTiles.length; i++) {
         for (var j = 0; j < this.rowTiles[i].length; j++) {
-          var p = this.frequencyData[index];
-          var s = this.rowTiles[i][j];
-          var z = s.scale;
+          const freq = this.frequencyData[index];
+          let scale = freq / 50 <= 0 ? 0.01 : freq / 50;
 
-          TweenMax.to(z, .2, {
-            z: p / 50 <= 0 ? 0.01 : p / 50
+          TweenMax.to(this.rowTiles[i][j].scale, .2, {
+            z: scale - 3 < 0 ? 0.01 : scale - 3
           });
           index++;
         }
@@ -254,18 +249,6 @@ class App {
 
   addCameraControls() {
     this.controls = new OrbitControls(this.camera);
-  }
-
-  addGrid() {
-    const size = 25;
-    const divisions = 25;
-
-    const gridHelper = new THREE.GridHelper(size, divisions);
-    gridHelper.position.set(0, 0, 0);
-    gridHelper.material.opacity = 0;
-    gridHelper.material.transparent = true;
-
-    this.scene.add(gridHelper);
   }
 
   createObj(color) {
@@ -360,6 +343,7 @@ class App {
 
     this.analyser = this.audioCtx.createAnalyser();
     this.analyser.fftSize = 2048;
+    this.analyser.smoothingTimeConstant = 0.85;
 
     this.source = this.audioCtx.createMediaElementSource(this.audioElement);
     this.source.connect(this.analyser);

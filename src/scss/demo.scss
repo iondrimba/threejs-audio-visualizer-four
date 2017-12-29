@@ -47,7 +47,7 @@ button {
   transform: scale(0, 1);
   transform-origin: left;
   transition: transform .3s cubic-bezier(0.23, 1, 0.32, 1);
-  background: linear-gradient(to right, #0391fd, #751ea1);
+  background: linear-gradient(to right, #16fd03, #00ff8a);
 }
 
 a {
@@ -76,7 +76,6 @@ a {
 }
 
 .removeLoader {
-  transform-origin: bottom;
   transition: transform .3s .3s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
