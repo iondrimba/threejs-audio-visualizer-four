@@ -9057,10 +9057,13 @@ var App = function () {
     this.songFile = 'autotron.mp3';
     this.percent = 0;
     this.playing = false;
-    this.volume = 0.001;
+    this.volume = 0.01;
     this.objects = [];
     this.sceneBackGroundColor = 0xfff700;
     this.objectsColor = 0xae12d4;
+    this.rowTiles = [];
+    this.cols = 0;
+    this.groupTiles = new THREE.Object3D();
 
     this.loader = new _loader2.default();
     this.loader.progress(function (percent) {
@@ -9103,63 +9106,103 @@ var App = function () {
         _this3.addCameraControls();
         _this3.addFloor();
         _this3.addGrid();
-        _this3.addTiles();
-        _this3.addAnchor();
-        //this.createRingOfSquares(20, 1, this.objectsColor, this.firstRing);
         _this3.animate();
         _this3.playSound(file);
-      }, 200);
+
+        _this3.timer = 600;
+        var interval = setInterval(function () {
+          _this3.addTilesRow(_this3.rowTiles);
+          _this3.removeOldTiles(_this3.rowTiles);
+        }, _this3.timer);
+      });
     }
   }, {
-    key: 'addTiles',
-    value: function addTiles() {
+    key: 'removeOldTiles',
+    value: function removeOldTiles(tiles) {
       var _this4 = this;
 
-      var rows = 4;
-      var cols = 30;
+      if (tiles.length % 25 === 0) {
+        var removedTiles = tiles[0];
+        var index = 0;
+        for (var tile in removedTiles) {
+          if (removedTiles.hasOwnProperty(tile)) {
+            (function () {
+              var element = removedTiles[tile];
+              _gsap.TweenMax.delayedCall(0.07 * index, function () {
+
+                _gsap.TweenMax.to(element.scale, .5, {
+                  z: 0.01,
+                  ease: _gsap.Power2.easeOut,
+                  onComplete: function onComplete(element) {
+                    _this4.groupTiles.remove(element);
+                  },
+                  onCompleteParams: [element]
+                });
+              });
+              index++;
+            })();
+          }
+        }
+
+        tiles = tiles.splice(0, 1);
+      }
+    }
+  }, {
+    key: 'addTilesRow',
+    value: function addTilesRow(tiles) {
+      var rows = 8;
+      var cols = 1;
       var positions = [];
       var gutter = 1.05;
+      var index = 0;
 
-      for (var row = 0; row < rows; row++) {
-        positions[row] = [];
+      var hasPrev = tiles.length && tiles[tiles.length - 1][0].position;
+      var prevPos = 0;
 
-        var _loop = function _loop(col) {
+      if (tiles.length) {
+        prevPos = tiles[tiles.length - 1][0].position.x + gutter;
+      }
+
+      for (var col = 0; col < cols; col++) {
+        positions[col] = [];
+        tiles.push([]);
+
+        for (var row = 0; row < rows; row++) {
           var pos = {
             z: row,
-            y: 1,
-            x: col,
-            rX: _this4.radians(90)
+            y: 3,
+            x: hasPrev ? prevPos : col,
+            rX: this.radians(90)
           };
 
-          positions[row][col] = pos;
+          positions[col][row] = pos;
+          var plane = this.createObj(this.objectsColor);
 
-          var plane = _this4.createTile(_this4.objectsColor);
-
-          if (row > 0) {
-            pos.z = positions[row - 1][col].z * plane.size + gutter;
-          }
+          plane.scale.set(1, 1, 0.01);
 
           if (col > 0) {
-            pos.x = positions[row][col - 1].x * plane.size + gutter;
+            pos.x = positions[col - 1][row].x * plane.size + gutter;
+          }
+
+          if (row > 0) {
+            pos.z = positions[col][row - 1].z * plane.size + gutter;
           }
 
           plane.position.set(pos.x, pos.y, pos.z);
 
           plane.rotateX(pos.rX);
 
-          _this4.scene.add(plane);
+          this.groupTiles.add(plane);
 
-          _gsap.TweenMax.delayedCall(row * col / 10, function () {
-            _gsap.TweenMax.to(plane.rotation, .2, {
-              y: _this4.radians(180)
-            });
-          });
-        };
+          tiles[tiles.length - 1].push(plane);
 
-        for (var col = 0; col < cols; col++) {
-          _loop(col);
+          index++;
         }
+
+        index++;
       }
+
+      positions = null;
     }
   }, {
     key: 'playSound',
@@ -9180,19 +9223,21 @@ var App = function () {
       if (this.playing) {
 
         this.analyser.getByteFrequencyData(this.frequencyData);
+        var index = 0;
+        for (var i = 0; i < this.rowTiles.length; i++) {
+          for (var j = 0; j < this.rowTiles[i].length; j++) {
+            var p = this.frequencyData[index];
+            var s = this.rowTiles[i][j];
+            var z = s.scale;
 
-        for (var i = 0; i < this.total; i++) {
-          var p = this.frequencyData[i];
-          var s = this.objects[i];
-          var z = s.position;
-
-          _gsap.TweenMax.to(z, .2, {
-            y: p / 20
-          });
+            _gsap.TweenMax.to(z, .2, {
+              z: p / 50 <= 0 ? 0.01 : p / 50
+            });
+            index++;
+          }
+          index++;
         }
       }
-
-      this.moveRingGroup(this.firstRing, .01);
     }
   }, {
     key: 'addSoundControls',
@@ -9215,33 +9260,6 @@ var App = function () {
       });
     }
   }, {
-    key: 'createRingOfSquares',
-    value: function createRingOfSquares(count, radius, color, group) {
-
-      for (var index = 0; index < count; index++) {
-
-        var l = 360 / count;
-        var pos = this.radians(l * index);
-        var obj = this.createObj(color);
-        var distance = radius * 2;
-
-        var sin = Math.sin(pos) * distance;
-        var cos = Math.cos(pos) * distance;
-
-        obj.position.set(sin, 0, cos);
-
-        obj.rotateY(pos);
-
-        this.objects.push(obj);
-
-        group.add(obj);
-      }
-
-      this.scene.add(group);
-
-      this.total = this.objects.length;
-    }
-  }, {
     key: 'createScene',
     value: function createScene() {
       this.scene = new THREE.Scene();
@@ -9253,18 +9271,17 @@ var App = function () {
       this.renderer.shadowMap.enabled = true;
       this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
+      this.groupTiles.position.set(10, 0, -5);
+      this.scene.add(this.groupTiles);
+
       document.body.appendChild(this.renderer.domElement);
     }
   }, {
     key: 'createCamera',
     value: function createCamera() {
-      this.camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 1000);
-      this.camera.position.set(-10, 5, 10);
-
+      this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000);
+      this.camera.position.set(20, 20, -20);
       this.scene.add(this.camera);
-
-      var helper = new THREE.CameraHelper(this.camera);
-      helper.visible = true;
     }
   }, {
     key: 'addCameraControls',
@@ -9279,42 +9296,30 @@ var App = function () {
 
       var gridHelper = new THREE.GridHelper(size, divisions);
       gridHelper.position.set(0, 0, 0);
-      gridHelper.material.opacity = 0.50;
+      gridHelper.material.opacity = 0;
       gridHelper.material.transparent = true;
+
       this.scene.add(gridHelper);
     }
   }, {
     key: 'createObj',
     value: function createObj(color) {
       var size = .5;
-      var geometry = new THREE.BoxGeometry(size, size, size);
+      var geometry = new THREE.BoxGeometry(size, size, 5);
       var material = new THREE.MeshLambertMaterial({
-        color: color
+        color: color,
+        emissive: 0x0
       });
-
       var obj = new THREE.Mesh(geometry, material);
       obj.castShadow = true;
       obj.receiveShadow = true;
+      obj.position.z = -2.5;
+      obj.size = 1;
 
-      return obj;
-    }
-  }, {
-    key: 'createTile',
-    value: function createTile(color) {
-      var size = 1;
-      var width = size;
-      var height = size;
-      var segmentsW = 5;
-      var segmentsH = segmentsW;
-
-      var geometry = new THREE.PlaneGeometry(width, height, segmentsW, segmentsH);
-      var material = new THREE.MeshBasicMaterial({ color: color, side: THREE.FrontSide });
-      var plane = new THREE.Mesh(geometry, material);
-
-      plane.castShadow = true;
-      plane.receiveShadow = true;
-      plane.size = size;
-      return plane;
+      var pivot = new THREE.Object3D();
+      pivot.add(obj);
+      pivot.size = 1;
+      return pivot;
     }
   }, {
     key: 'onResize',
@@ -9328,33 +9333,34 @@ var App = function () {
   }, {
     key: 'addFloor',
     value: function addFloor() {
-      var planeGeometry = new THREE.PlaneGeometry(2000, 2000);
-      var planeMaterial = new THREE.ShadowMaterial({ opacity: 0.08 });
-      var plane = new THREE.Mesh(planeGeometry, planeMaterial);
+      var planeGeometry = new THREE.PlaneGeometry(250, 250);
+      var planeMaterial = new THREE.ShadowMaterial({ opacity: .05 });
+
+      this.floor = new THREE.Mesh(planeGeometry, planeMaterial);
 
       planeGeometry.rotateX(-Math.PI / 2);
 
-      plane.position.y = -1;
-      plane.receiveShadow = true;
+      this.floor.position.y = 0;
+      this.floor.receiveShadow = true;
 
-      this.scene.add(plane);
-    }
-  }, {
-    key: 'moveRingGroup',
-    value: function moveRingGroup(group, value) {
-      group.rotation.y += value;
+      this.scene.add(this.floor);
     }
   }, {
     key: 'addSpotLight',
     value: function addSpotLight() {
-      var spotLight = new THREE.SpotLight(0xffffff);
+      this.spotLight = new THREE.SpotLight(0xffffff);
+      this.spotLight.position.set(-10, 60, -10);
+      this.spotLight.castShadow = true;
+      this.spotLight.angle = Math.PI / 4;
+      this.spotLight.penumbra = 0;
+      this.spotLight.decay = .5;
+      this.spotLight.distance = 100;
+      this.spotLight.shadow.mapSize.width = 1024;
+      this.spotLight.shadow.mapSize.height = 1024;
+      this.spotLight.shadow.camera.near = 10;
+      this.spotLight.shadow.camera.far = 100;
 
-      spotLight.position.set(0, 20, 1);
-      spotLight.castShadow = true;
-
-      this.scene.add(spotLight);
-
-      var spotLightHelper = new THREE.SpotLightHelper(spotLight);
+      this.scene.add(this.spotLight);
     }
   }, {
     key: 'addAmbientLight',
@@ -9363,24 +9369,21 @@ var App = function () {
       this.scene.add(light);
     }
   }, {
-    key: 'addAnchor',
-    value: function addAnchor() {
-      var geometry = new THREE.BoxGeometry(10, 10, 10);
-      var material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-      this.anchor = new THREE.Mesh(geometry, material);
-      this.scene.add(this.anchor);
-    }
-  }, {
     key: 'animate',
     value: function animate() {
       this.controls.update();
 
-      this.camera.position.x += .05;
-      this.anchor.position.x += .05;
-      this.camera.lookAt(this.anchor.position);
-      this.drawWave();
+      if (this.rowTiles[this.rowTiles.length - 1]) {
+        var x = -this.rowTiles[this.rowTiles.length - 1][0].position.x + 15;
+        _gsap.TweenMax.to(this.groupTiles.position, 1, {
+          x: x,
+          ease: _gsap.Power2.easeOut
+        });
+      }
 
       this.renderer.render(this.scene, this.camera);
+
+      this.drawWave();
 
       requestAnimationFrame(this.animate.bind(this));
     }
@@ -9396,7 +9399,9 @@ var App = function () {
 
       this.audioElement = document.getElementById('audio');
       this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
       this.analyser = this.audioCtx.createAnalyser();
+      this.analyser.fftSize = 2048;
 
       this.source = this.audioCtx.createMediaElementSource(this.audioElement);
       this.source.connect(this.analyser);

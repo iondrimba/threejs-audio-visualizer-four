@@ -8,10 +8,13 @@ class App {
     this.songFile = 'autotron.mp3';
     this.percent = 0;
     this.playing = false;
-    this.volume = 0.001;
+    this.volume = 0.01;
     this.objects = [];
     this.sceneBackGroundColor = 0xfff700;
     this.objectsColor = 0xae12d4;
+    this.rowTiles = [];
+    this.cols = 0;
+    this.groupTiles = new THREE.Object3D();
 
     this.loader = new Loader();
     this.loader.progress((percent) => { this.progress(percent); });
@@ -45,57 +48,98 @@ class App {
       this.addCameraControls();
       this.addFloor();
       this.addGrid();
-      this.addTiles();
-      this.addAnchor();
-      //this.createRingOfSquares(20, 1, this.objectsColor, this.firstRing);
       this.animate();
       this.playSound(file);
-    }, 200);
+
+      this.timer = 600;
+      let interval = setInterval(() => {
+        this.addTilesRow(this.rowTiles);
+        this.removeOldTiles(this.rowTiles);
+      }, this.timer);
+    });
   }
 
-  addTiles() {
+  removeOldTiles(tiles) {
+    if (tiles.length % 25 === 0) {
+      const removedTiles = tiles[0];
+      let index = 0;
+      for (const tile in removedTiles) {
+        if (removedTiles.hasOwnProperty(tile)) {
+          const element = removedTiles[tile];
+          TweenMax.delayedCall(0.07 * index, () => {
 
-    const rows = 4;
-    const cols = 30;
-    const positions = [];
+            TweenMax.to(element.scale, .5, {
+              z: 0.01,
+              ease: Power2.easeOut,
+              onComplete: (element) => {
+                this.groupTiles.remove(element);
+              },
+              onCompleteParams: [element]
+            });
+          });
+          index++;
+        }
+      }
+
+      tiles = tiles.splice(0, 1);
+    }
+  }
+
+  addTilesRow(tiles) {
+    const rows = 8;
+    const cols = 1;
+    let positions = [];
     const gutter = 1.05;
+    let index = 0;
 
-    for (let row = 0; row < rows; row++) {
-      positions[row] = [];
-      for (let col = 0; col < cols; col++) {
+    const hasPrev = tiles.length && tiles[tiles.length - 1][0].position;
+    let prevPos = 0;
+
+    if (tiles.length) {
+      prevPos = tiles[tiles.length - 1][0].position.x + gutter;
+    }
+
+    for (let col = 0; col < cols; col++) {
+      positions[col] = [];
+      tiles.push([]);
+
+      for (let row = 0; row < rows; row++) {
         const pos = {
           z: row,
-          y: 1,
-          x: col,
+          y: 3,
+          x: hasPrev ? prevPos : col,
           rX: this.radians(90)
         }
 
-        positions[row][col] = pos;
+        positions[col][row] = pos;
+        const plane = this.createObj(this.objectsColor);
 
-        const plane = this.createTile(this.objectsColor);
-
-        if (row > 0) {
-          pos.z = (positions[row - 1][col].z * plane.size) + gutter;
-        }
+        plane.scale.set(1, 1, 0.01);
 
         if (col > 0) {
-          pos.x = (positions[row][col - 1].x * plane.size) + gutter;
+          pos.x = (positions[col - 1][row].x * plane.size) + gutter;
+        }
+
+        if (row > 0) {
+          pos.z = (positions[col][row - 1].z * plane.size) + gutter;
         }
 
         plane.position.set(pos.x, pos.y, pos.z);
 
         plane.rotateX(pos.rX);
 
-        this.scene.add(plane);
 
-        TweenMax.delayedCall(row * col / 10, () => {
-          TweenMax.to(plane.rotation, .2, {
-            y: this.radians(180)
-          });
-        });
+        this.groupTiles.add(plane);
+
+        tiles[tiles.length - 1].push(plane);
+
+        index++;
       }
+
+      index++;
     }
 
+    positions = null;
   }
 
   playSound(file) {
@@ -112,19 +156,21 @@ class App {
     if (this.playing) {
 
       this.analyser.getByteFrequencyData(this.frequencyData);
+      let index = 0;
+      for (var i = 0; i < this.rowTiles.length; i++) {
+        for (var j = 0; j < this.rowTiles[i].length; j++) {
+          var p = this.frequencyData[index];
+          var s = this.rowTiles[i][j];
+          var z = s.scale;
 
-      for (var i = 0; i < this.total; i++) {
-        var p = this.frequencyData[i];
-        var s = this.objects[i];
-        var z = s.position;
-
-        TweenMax.to(z, .2, {
-          y: p / 20
-        });
+          TweenMax.to(z, .2, {
+            z: p / 50 <= 0 ? 0.01 : p / 50
+          });
+          index++;
+        }
+        index++;
       }
     }
-
-    this.moveRingGroup(this.firstRing, .01);
   }
 
   addSoundControls() {
@@ -145,32 +191,6 @@ class App {
     });
   }
 
-  createRingOfSquares(count, radius, color, group) {
-
-    for (let index = 0; index < count; index++) {
-
-      var l = 360 / count;
-      var pos = this.radians(l * index);
-      var obj = this.createObj(color);
-      var distance = (radius * 2);
-
-      var sin = Math.sin(pos) * distance;
-      var cos = Math.cos(pos) * distance;
-
-      obj.position.set(sin, 0, cos);
-
-      obj.rotateY(pos);
-
-      this.objects.push(obj);
-
-      group.add(obj);
-    }
-
-    this.scene.add(group);
-
-    this.total = this.objects.length;
-  }
-
   createScene() {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(this.sceneBackGroundColor);
@@ -181,17 +201,16 @@ class App {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
+    this.groupTiles.position.set(10, 0, -5);
+    this.scene.add(this.groupTiles);
+
     document.body.appendChild(this.renderer.domElement);
   }
 
   createCamera() {
-    this.camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 1000);
-    this.camera.position.set(-10, 5, 10);
-
+    this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000);
+    this.camera.position.set(20, 20, -20);
     this.scene.add(this.camera);
-
-    var helper = new THREE.CameraHelper(this.camera);
-    helper.visible = true;
   }
 
   addCameraControls() {
@@ -204,40 +223,29 @@ class App {
 
     const gridHelper = new THREE.GridHelper(size, divisions);
     gridHelper.position.set(0, 0, 0);
-    gridHelper.material.opacity = 0.50;
+    gridHelper.material.opacity = 0;
     gridHelper.material.transparent = true;
+
     this.scene.add(gridHelper);
   }
 
   createObj(color) {
-    var size = .5;
-    const geometry = new THREE.BoxGeometry(size, size, size);
+    const size = .5;
+    const geometry = new THREE.BoxGeometry(size, size, 5);
     const material = new THREE.MeshLambertMaterial({
-      color: color
+      color: color,
+      emissive: 0x0
     });
-
     const obj = new THREE.Mesh(geometry, material);
     obj.castShadow = true;
     obj.receiveShadow = true;
+    obj.position.z = -2.5;
+    obj.size = 1;
 
-    return obj;
-  }
-
-  createTile(color) {
-    const size = 1;
-    const width = size;
-    const height = size;
-    const segmentsW = 5;
-    const segmentsH = segmentsW;
-
-    const geometry = new THREE.PlaneGeometry(width, height, segmentsW, segmentsH);
-    const material = new THREE.MeshBasicMaterial({ color: color, side: THREE.FrontSide });
-    const plane = new THREE.Mesh(geometry, material);
-
-    plane.castShadow = true;
-    plane.receiveShadow = true;
-    plane.size = size;
-    return plane;
+    const pivot = new THREE.Object3D();
+    pivot.add(obj);
+    pivot.size = 1;
+    return pivot;
   }
 
   onResize() {
@@ -249,31 +257,33 @@ class App {
   }
 
   addFloor() {
-    const planeGeometry = new THREE.PlaneGeometry(2000, 2000);
-    const planeMaterial = new THREE.ShadowMaterial({ opacity: 0.08 });
-    const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+    const planeGeometry = new THREE.PlaneGeometry(250, 250);
+    const planeMaterial = new THREE.ShadowMaterial({ opacity: .05 });
+
+    this.floor = new THREE.Mesh(planeGeometry, planeMaterial);
 
     planeGeometry.rotateX(- Math.PI / 2);
 
-    plane.position.y = -1;
-    plane.receiveShadow = true;
+    this.floor.position.y = 0;
+    this.floor.receiveShadow = true;
 
-    this.scene.add(plane);
-  }
-
-  moveRingGroup(group, value) {
-    group.rotation.y += value;
+    this.scene.add(this.floor);
   }
 
   addSpotLight() {
-    const spotLight = new THREE.SpotLight(0xffffff);
+    this.spotLight = new THREE.SpotLight(0xffffff);
+    this.spotLight.position.set(-10, 60, -10);
+    this.spotLight.castShadow = true;
+     this.spotLight.angle = Math.PI / 4;
+    this.spotLight.penumbra = 0;
+     this.spotLight.decay = .5;
+    this.spotLight.distance = 100;
+     this.spotLight.shadow.mapSize.width = 1024;
+     this.spotLight.shadow.mapSize.height = 1024;
+     this.spotLight.shadow.camera.near = 10;
+     this.spotLight.shadow.camera.far = 100;
 
-    spotLight.position.set(0, 20, 1);
-    spotLight.castShadow = true;
-
-    this.scene.add(spotLight);
-
-    const spotLightHelper = new THREE.SpotLightHelper(spotLight);
+    this.scene.add(this.spotLight);
   }
 
   addAmbientLight() {
@@ -281,22 +291,20 @@ class App {
     this.scene.add(light);
   }
 
-  addAnchor() {
-    var geometry = new THREE.BoxGeometry(10, 10, 10);
-    var material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-    this.anchor = new THREE.Mesh(geometry, material);
-    this.scene.add(this.anchor);
-  }
-
   animate() {
     this.controls.update();
 
-    this.camera.position.x += .05;
-    this.anchor.position.x += .05;
-    this.camera.lookAt(this.anchor.position);
-    this.drawWave();
+    if (this.rowTiles[this.rowTiles.length - 1]) {
+      const x = -this.rowTiles[this.rowTiles.length - 1][0].position.x + 15;
+      TweenMax.to(this.groupTiles.position, 1, {
+        x: x,
+        ease: Power2.easeOut
+      });
+    }
 
     this.renderer.render(this.scene, this.camera);
+
+    this.drawWave();
 
     requestAnimationFrame(this.animate.bind(this));
   }
@@ -308,7 +316,9 @@ class App {
   setupAudio() {
     this.audioElement = document.getElementById('audio');
     this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
     this.analyser = this.audioCtx.createAnalyser();
+    this.analyser.fftSize = 2048;
 
     this.source = this.audioCtx.createMediaElementSource(this.audioElement);
     this.source.connect(this.analyser);
