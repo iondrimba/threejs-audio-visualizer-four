@@ -21,6 +21,7 @@ class App {
     this.loaderBar = document.querySelector('.loader');
     this.loader.load(this.songFile);
     this.loader.complete = this.complete.bind(this);
+
   }
 
   progress(percent) {
@@ -205,6 +206,17 @@ class App {
     this.scene.add(this.groupTiles);
 
     document.body.appendChild(this.renderer.domElement);
+
+    document.body.onmouseup = () => {
+      console.log('up');
+      document.body.style.cursor = '-moz-grab';
+      document.body.style.cursor = '-webkit-grab';
+    };
+    document.body.onmousedown = () => {
+      console.log('down');
+      document.body.style.cursor = '-moz-grabbing';
+      document.body.style.cursor = '-webkit-grabbing';
+    }
   }
 
   createCamera() {
@@ -274,14 +286,14 @@ class App {
     this.spotLight = new THREE.SpotLight(0xffffff);
     this.spotLight.position.set(-10, 60, -10);
     this.spotLight.castShadow = true;
-     this.spotLight.angle = Math.PI / 4;
+    this.spotLight.angle = Math.PI / 4;
     this.spotLight.penumbra = 0;
-     this.spotLight.decay = .5;
+    this.spotLight.decay = .5;
     this.spotLight.distance = 100;
-     this.spotLight.shadow.mapSize.width = 1024;
-     this.spotLight.shadow.mapSize.height = 1024;
-     this.spotLight.shadow.camera.near = 10;
-     this.spotLight.shadow.camera.far = 100;
+    this.spotLight.shadow.mapSize.width = 1024;
+    this.spotLight.shadow.mapSize.height = 1024;
+    this.spotLight.shadow.camera.near = 10;
+    this.spotLight.shadow.camera.far = 100;
 
     this.scene.add(this.spotLight);
   }

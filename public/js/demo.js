@@ -9275,6 +9275,17 @@ var App = function () {
       this.scene.add(this.groupTiles);
 
       document.body.appendChild(this.renderer.domElement);
+
+      document.body.onmouseup = function () {
+        console.log('up');
+        document.body.style.cursor = '-moz-grab';
+        document.body.style.cursor = '-webkit-grab';
+      };
+      document.body.onmousedown = function () {
+        console.log('down');
+        document.body.style.cursor = '-moz-grabbing';
+        document.body.style.cursor = '-webkit-grabbing';
+      };
     }
   }, {
     key: 'createCamera',
