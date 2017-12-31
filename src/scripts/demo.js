@@ -17,15 +17,17 @@ class App {
     this.loader.progress((percent) => { this.progress(percent); });
     this.loaderBar = document.querySelector('.loader');
     this.loader.load(this.songFile);
+    this.playIntro = document.querySelector('.play-intro');
     this.loader.complete = this.complete.bind(this);
 
   }
 
   progress(percent) {
-    this.loaderBar.style.transform = `scale(${percent / 100}, 1)`;
-    if (percent === 100) {
+    this.loaderBar.style.transform = `scale(${(percent / 100)+.1}, 1.1)`;
+    if (percent ===100) {
       setTimeout(() => {
         requestAnimationFrame(() => {
+          this.playIntro.classList.add('control-show');
           this.loaderBar.classList.add('removeLoader');
           this.loaderBar.style.transform = 'scale(1, 0)';
         })
@@ -150,9 +152,6 @@ class App {
     setTimeout(() => {
       this.audioElement.src = file;
       this.audioElement.load();
-      this.audioElement.play();
-
-      this.playing = true;
     }, 1000);
   }
 
@@ -218,8 +217,12 @@ class App {
   }
 
   addEventListener() {
+    this.playIntro.addEventListener('click', (evt)=>{
+      evt.currentTarget.classList.remove('control-show');
+      this.play();
+    });
+
     document.body.addEventListener('mouseup', () => {
-      console.log('up');
       requestAnimationFrame(() => {
         document.body.style.cursor = '-moz-grab';
         document.body.style.cursor = '-webkit-grab';
@@ -227,7 +230,6 @@ class App {
     });
 
     document.body.addEventListener('mousedown', () => {
-      console.log('down');
       requestAnimationFrame(() => {
         document.body.style.cursor = '-moz-grabbing';
         document.body.style.cursor = '-webkit-grabbing';

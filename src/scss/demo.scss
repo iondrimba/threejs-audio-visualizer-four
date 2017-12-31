@@ -10,7 +10,10 @@ html, body {
   cursor: -moz-grab;
 }
 
-canvas { width: 100%; height: 100% }
+canvas {
+  width: 100%;
+  height: 100%;
+}
 
 h1 {
   padding: 0;
@@ -24,6 +27,21 @@ button {
   cursor: pointer;
 }
 
+.play-intro {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: none;
+  transform: translate(-50%,-50%);
+  height: 100px;
+  width: 100px;
+  cursor: pointer;
+
+  svg {
+    width: 100%;
+  }
+}
+
 .controls {
   position: absolute;
   right: 30px;
@@ -34,7 +52,7 @@ button {
   display: none;
 }
 
-.control-show  {
+.control-show {
   display: block;
 }
 
@@ -46,7 +64,7 @@ button {
   z-index: 0;
   transform: scale(0, 1);
   transform-origin: left;
-  transition: transform .3s cubic-bezier(0.23, 1, 0.32, 1);
+  transition: transform .3s cubic-bezier(.23, 1, .32, 1);
   background: linear-gradient(to right, #16fd03, #00ff8a);
 }
 
@@ -76,7 +94,7 @@ a {
 }
 
 .removeLoader {
-  transition: transform .3s .3s cubic-bezier(0.23, 1, 0.32, 1);
+  transition: transform .3s .3s cubic-bezier(.23, 1, .32, 1);
 }
 
 @media screen and (min-width: 768px) {
