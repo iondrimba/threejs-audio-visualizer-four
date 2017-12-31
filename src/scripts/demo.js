@@ -238,6 +238,7 @@ class App {
 
     document.body.addEventListener('keyup', (evt) => {
       if (evt.keyCode === 32 || evt.code === 'Space') {
+        this.playIntro.classList.remove('control-show');
         this.playing ? this.pause() : this.play();
       }
     });
