@@ -10,9 +10,6 @@ gulp.task('copy', require('./tasks/copy.js'));
 // using vinyl-source-stream:
 gulp.task('browserify', require('./tasks/browserify.js'));
 
-//eslint task
-gulp.task('eslint', require('./tasks/eslint.js'));
-
 //uglify task
 gulp.task('uglify', require('./tasks/uglify.js'));
 
@@ -35,10 +32,10 @@ gulp.task('post-css', require('./tasks/post-css.js'));
 gulp.task('browser-sync', require('./tasks/browser-sync.js'));
 
 // Default Task
-gulp.task('default', gulpsync.sync(['copy', 'sass', 'eslint', 'browserify', 'browser-sync', 'watch']));
+gulp.task('default', gulpsync.sync(['copy', 'sass', 'browserify', 'browser-sync', 'watch']));
 
 //publish Task
-gulp.task('deploy', gulpsync.sync(['copy', 'sass', 'eslint', 'browserify']));
+gulp.task('deploy', gulpsync.sync(['copy', 'sass', 'browserify']));
 
 //optimization task isolated because of the asynchronous problems gulp has
 gulp.task('optimize', gulpsync.sync(['uglify', 'minify-css', 'html-min']));
