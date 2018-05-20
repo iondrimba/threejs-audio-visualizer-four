@@ -16,7 +16,7 @@ module.exports = function () {
 
   const bundleStream = browserify('./src/scripts/demo.js')
     .transform(babelify, {
-      'presets': ['es2015']
+      'presets': ['env']
     })
     .transform(stringify(['.html']))
     .bundle();

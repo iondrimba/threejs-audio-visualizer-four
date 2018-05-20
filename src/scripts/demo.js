@@ -23,8 +23,8 @@ class App {
   }
 
   progress(percent) {
-    this.loaderBar.style.transform = `scale(${(percent / 100)+.1}, 1.1)`;
-    if (percent ===100) {
+    this.loaderBar.style.transform = `scale(${(percent / 100) + .1}, 1.1)`;
+    if (percent === 100) {
       setTimeout(() => {
         requestAnimationFrame(() => {
           this.playIntro.classList.add('control-show');
@@ -195,6 +195,7 @@ class App {
   }
 
   play() {
+    this.audioCtx.resume();
     this.audioElement.play();
     this.btnPlay.classList.remove('control-show');
     this.btnPause.classList.add('control-show');
@@ -217,7 +218,7 @@ class App {
   }
 
   addEventListener() {
-    this.playIntro.addEventListener('click', (evt)=>{
+    this.playIntro.addEventListener('click', (evt) => {
       evt.currentTarget.classList.remove('control-show');
       this.play();
     });
