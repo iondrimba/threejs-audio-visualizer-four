@@ -1,0 +1,12 @@
+sudo: required
+language: node_js
+cache: npm
+node_js:
+- '8'
+before_install:
+- npm install -g npm
+before_script:
+- npm install -g gulp
+script:
+- gulp deploy
+- gulp optimize
